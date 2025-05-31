@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'キャラクター診断',
+      title: 'キャラクター診断 ver3.0',
       theme: ThemeData(
         primarySwatch: Colors.brown,
         // スライダーのポップアップラベルの文字色などを設定
