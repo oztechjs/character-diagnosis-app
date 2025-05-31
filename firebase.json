@@ -1,0 +1,55 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "character-diagnosis-app",
+          "appId": "1:423911772059:android:50366246ec2659b141db3e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "character-diagnosis-app",
+          "appId": "1:423911772059:ios:8461d69c9e0fade041db3e",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "character-diagnosis-app",
+          "appId": "1:423911772059:ios:8461d69c9e0fade041db3e",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "character-diagnosis-app",
+          "configurations": {
+            "android": "1:423911772059:android:50366246ec2659b141db3e",
+            "ios": "1:423911772059:ios:8461d69c9e0fade041db3e",
+            "macos": "1:423911772059:ios:8461d69c9e0fade041db3e",
+            "web": "1:423911772059:web:517204319777108441db3e",
+            "windows": "1:423911772059:web:4472442df9585a6741db3e"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

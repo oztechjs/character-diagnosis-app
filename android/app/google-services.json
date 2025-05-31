@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "423911772059",
+    "project_id": "character-diagnosis-app",
+    "storage_bucket": "character-diagnosis-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:423911772059:android:50366246ec2659b141db3e",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOETFupOq4gfeoVwfJeAaRiAbabdU0C8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
