@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
-// import 'package:cloud_firestore/cloud_firestore.dart'; // No longer needed here
+import 'dart:math'; // _normalizeAnswer などで使う場合は残す (今回は診断ロジックごと削除)
+
+// import 'package:cloud_firestore/cloud_firestore.dart'; // ★ Firebase関連は不要
 
 class CharacterDecidePage extends StatelessWidget {
-  final List<int> answers;
+  final List<int> answers; // 一応受け取るが、主には diagnosedCharacterName を使う
+  final String
+  diagnosedCharacterName; // ★ CharacterQuestionPage から渡される診断済みのキャラクター名
 
-  const CharacterDecidePage({super.key, required this.answers});
+  const CharacterDecidePage({
+    super.key,
+    required this.answers,
+    required this.diagnosedCharacterName, // ★ コンストラクタで受け取る
+  });
 
+  // キャラクターの全データ定義
   final Map<String, dynamic> _characterFullData = const {
     "剣士": {
       "image": 'assets/character_swordman.png',
@@ -73,310 +81,33 @@ class CharacterDecidePage extends StatelessWidget {
     },
   };
 
-  double _normalizeAnswer(int questionIndex, int rawAnswer) {
-    double normalizedScore = 3.0;
-    switch (questionIndex) {
-      case 0: // Q1 履修コマ数
-        if (rawAnswer >= 22)
-          normalizedScore = 5.0;
-        else if (rawAnswer >= 18)
-          normalizedScore = 4.0;
-        else if (rawAnswer >= 14)
-          normalizedScore = 3.0;
-        else if (rawAnswer >= 10)
-          normalizedScore = 2.0;
-        else
-          normalizedScore = 1.0;
-        break;
-      case 1: // Q2 1限コマ数
-        if (rawAnswer >= 5)
-          normalizedScore = 5.0;
-        else if (rawAnswer == 4)
-          normalizedScore = 4.5;
-        else if (rawAnswer == 3)
-          normalizedScore = 3.5;
-        else if (rawAnswer == 2)
-          normalizedScore = 2.5;
-        else if (rawAnswer == 1)
-          normalizedScore = 1.5;
-        else
-          normalizedScore = 1.0;
-        break;
-      case 2: // ★ Q3 週に休んだコマ数 (0-25 スライダー)
-        if (rawAnswer == 0)
-          normalizedScore = 5.0;
-        else if (rawAnswer <= 2)
-          normalizedScore = 4.0;
-        else if (rawAnswer <= 4)
-          normalizedScore = 3.0;
-        else if (rawAnswer <= 7)
-          normalizedScore = 2.0;
-        else
-          normalizedScore = 1.0;
-        break;
-      case 3: // ★ Q4 代筆を頼んだ回数 (0-25 スライダー)
-        if (rawAnswer == 0)
-          normalizedScore = 5.0;
-        else if (rawAnswer == 1)
-          normalizedScore = 3.5;
-        else if (rawAnswer == 2)
-          normalizedScore = 2.0;
-        else if (rawAnswer == 3)
-          normalizedScore = 1.0;
-        else
-          normalizedScore = 0.5;
-        break;
-      case 4: // Q5 バイト回数
-        if (rawAnswer >= 5)
-          normalizedScore = 5.0;
-        else if (rawAnswer >= 3)
-          normalizedScore = 4.0;
-        else if (rawAnswer >= 1)
-          normalizedScore = 3.0;
-        else
-          normalizedScore = 1.5;
-        break;
-      case 5: // Q6 サークル参加回数
-        if (rawAnswer >= 4)
-          normalizedScore = 5.0;
-        else if (rawAnswer >= 2)
-          normalizedScore = 3.5;
-        else if (rawAnswer == 1)
-          normalizedScore = 2.0;
-        else
-          normalizedScore = 1.0;
-        break;
-      case 6: // Q7 空きコマ数
-        if (rawAnswer <= 1)
-          normalizedScore = 5.0;
-        else if (rawAnswer <= 3)
-          normalizedScore = 4.0;
-        else if (rawAnswer <= 6)
-          normalizedScore = 3.0;
-        else if (rawAnswer <= 8)
-          normalizedScore = 2.0;
-        else
-          normalizedScore = 1.0;
-        break;
-      case 7:
-      case 8:
-      case 9:
-      case 10: // Q8-Q11 スライダー (1-10)
-        normalizedScore = ((rawAnswer - 1) / 9.0) * 4.0 + 1.0;
-        break;
-      case 11: // Q12 未知の体験
-        const scores_q12 = [1.0, 3.5, 5.0, 1.5];
-        normalizedScore = scores_q12[rawAnswer];
-        break;
-      case 12: // Q13 計画と実行
-        const scores_q13 = [5.0, 3.5, 4.5, 1.0];
-        normalizedScore = scores_q13[rawAnswer];
-        break;
-      case 13: // Q14 興味関心
-        const scores_q14 = [5.0, 4.5, 4.0, 1.0];
-        normalizedScore = scores_q14[rawAnswer];
-        break;
-      case 14: // Q15 困難への対処
-        const scores_q15 = [4.5, 4.0, 3.5, 1.0];
-        normalizedScore = scores_q15[rawAnswer];
-        break;
-      case 15: // Q16 活動時間帯
-        const scores_q16 = [4.5, 3.0, 3.5, 5.0, 3.5];
-        normalizedScore = scores_q16[rawAnswer];
-        break;
-      case 16: // Q17 ゆるい授業中の過ごし方
-        const scores_q17 = [4.0, 0.5, 3.5, 1.0];
-        normalizedScore = scores_q17[rawAnswer];
-        break;
-    }
-    return max(0.5, min(5.0, normalizedScore));
-  }
-
-  double _normalizeInverse(int questionIndex, int rawAnswer) {
-    double normalizedScore = _normalizeAnswer(questionIndex, rawAnswer);
-    return 6.0 - normalizedScore;
-  }
-
-  String _diagnoseCharacter(List<int> currentAnswers) {
-    if (currentAnswers.length != 17) {
-      return "エラー：回答数が不足しています";
-    }
-    List<double> norm = List.generate(
-      currentAnswers.length,
-      (i) => _normalizeAnswer(i, currentAnswers[i]),
-    );
-
-    double totalClasses = currentAnswers[0].toDouble();
-    double skippedClassesRaw = currentAnswers[2].toDouble(); // Q3の生の値
-    double skippedPercentage =
-        (totalClasses > 0)
-            ? (skippedClassesRaw / totalClasses)
-            : (skippedClassesRaw > 0 ? 1.0 : 0.0);
-
-    double normalizedSkippedRateScore;
-    if (skippedPercentage == 0)
-      normalizedSkippedRateScore = 5.0;
-    else if (skippedPercentage <= 0.1)
-      normalizedSkippedRateScore = 4.0;
-    else if (skippedPercentage <= 0.25)
-      normalizedSkippedRateScore = 3.0;
-    else if (skippedPercentage <= 0.50)
-      normalizedSkippedRateScore = 2.0;
-    else
-      normalizedSkippedRateScore = 1.0;
-
-    double knightScore = 0;
-    knightScore += norm[0] * 0.2;
-    knightScore += norm[1] * 0.7;
-    knightScore += norm[5] * 1.0;
-    knightScore += norm[7] * 1.2;
-    knightScore += norm[8] * 1.0;
-    if (currentAnswers[12] == 0)
-      knightScore += norm[12] * 1.8;
-    else if (currentAnswers[12] == 1)
-      knightScore += norm[12] * 1.2;
-    knightScore += norm[9] * 1.2;
-    knightScore += norm[6] * 0.7;
-    if (currentAnswers[14] == 1) knightScore += norm[14] * 1.5;
-    knightScore += normalizedSkippedRateScore * 1.2;
-    knightScore += norm[3] * 1.0; // Q4代筆しない
-    if (currentAnswers[16] == 0) knightScore += norm[16] * 1.2; // Q17ゆる授業(聞く)
-
-    double witchScore = 0;
-    witchScore += norm[7] * 2.5;
-    if (currentAnswers[13] == 0) witchScore += norm[13] * 2.0;
-    if (currentAnswers[15] == 3) witchScore += norm[15] * 2.0;
-    if (norm[1] <= 2.0) witchScore += (6.0 - norm[1]) * 0.8;
-    witchScore += norm[9] * 1.0;
-    if (norm[5] <= 2.0) witchScore += (6.0 - norm[5]) * 0.5;
-    if (norm[4] <= 2.0) witchScore += (6.0 - norm[4]) * 0.3;
-    if (currentAnswers[16] == 2)
-      witchScore += norm[16] * 1.0;
-    else if (currentAnswers[16] == 0)
-      witchScore += norm[16] * 0.5;
-
-    double merchantScore = 0;
-    merchantScore += norm[4] * 1.8;
-    merchantScore += _normalizeInverse(6, currentAnswers[6]) * 1.2;
-    if (currentAnswers[13] == 2) merchantScore += norm[13] * 1.8;
-    merchantScore += norm[10] * 1.0;
-    if (currentAnswers[14] == 2) merchantScore += norm[14] * 1.5;
-    if (currentAnswers[12] == 1) merchantScore += norm[12] * 1.0;
-    if (currentAnswers[16] == 2)
-      merchantScore += norm[16] * 2.2; // Q17ゆる授業(他課題)
-
-    double gorillaScore = 0;
-    if (currentAnswers[15] == 0) gorillaScore += norm[15] * 1.0;
-    gorillaScore += norm[1] * 0.7;
-    gorillaScore += norm[8] * 1.0;
-    gorillaScore += norm[9] * 0.8;
-    gorillaScore += norm[5] * 0.8;
-    if (currentAnswers[14] == 0) gorillaScore += norm[14] * 1.5;
-    gorillaScore += normalizedSkippedRateScore * 0.5;
-    if (currentAnswers[16] == 3)
-      gorillaScore -= 0.5; // Q17寝るは少しマイナス
-    else if (currentAnswers[16] == 0)
-      gorillaScore += 0.5;
-
-    double adventurerScore = 0;
-    if (currentAnswers[11] == 2)
-      adventurerScore += norm[11] * 3.0;
-    else if (currentAnswers[11] == 1)
-      adventurerScore += norm[11] * 1.8;
-    if (currentAnswers[12] == 2)
-      adventurerScore += norm[12] * 2.5;
-    else if (currentAnswers[12] == 1)
-      adventurerScore += norm[12] * 1.0;
-    if (currentAnswers[13] == 1) adventurerScore += norm[13] * 2.2;
-    adventurerScore += _normalizeInverse(6, currentAnswers[6]) * 2.0;
-    if (currentAnswers[12] == 0) adventurerScore -= 2.5;
-    if (currentAnswers[15] == 4) adventurerScore += norm[15] * 2.2;
-    if (currentAnswers[16] == 1)
-      adventurerScore += norm[16] * 1.0; // Q17ゲーム
-    else if (currentAnswers[16] == 3 && norm[10] < 3.0)
-      adventurerScore += norm[16] * 0.3; // 忙しくないなら寝るのも自由
-    if (normalizedSkippedRateScore <= 2.0 && normalizedSkippedRateScore > 1.0)
-      adventurerScore -= 1.0;
-    else if (normalizedSkippedRateScore <= 1.0)
-      adventurerScore -= 2.5;
-
-    double godScoreSum = 0;
-    List<int> godCriteriaIndices = [1, 5, 7, 8, 9];
-    for (int idx in godCriteriaIndices) {
-      godScoreSum += norm[idx];
-    }
-    if (currentAnswers[12] == 0) godScoreSum += norm[12];
-    if (currentAnswers[14] == 1) godScoreSum += norm[14];
-    godScoreSum += norm[0] * 0.1;
-    godScoreSum += normalizedSkippedRateScore;
-    godScoreSum += norm[3];
-    if (currentAnswers[16] == 0) godScoreSum += norm[16];
-    if (godScoreSum >= 42.0 && norm[3] >= 3.5) {
-      return "神";
-    }
-
-    bool isDefinitelyLoserByDaipitsu = norm[3] <= 2.0;
-    double reCalclulatedLoserScore = 0;
-    reCalclulatedLoserScore += _normalizeInverse(0, currentAnswers[0]) * 0.3;
-    reCalclulatedLoserScore += _normalizeInverse(1, currentAnswers[1]);
-    reCalclulatedLoserScore += (6.0 - normalizedSkippedRateScore) * 3.0;
-    reCalclulatedLoserScore += (6.0 - norm[3]) * 3.5; // Q4代筆
-    reCalclulatedLoserScore += _normalizeInverse(6, currentAnswers[6]) * 1.5;
-    reCalclulatedLoserScore += _normalizeInverse(7, currentAnswers[7]) * 1.2;
-    reCalclulatedLoserScore += _normalizeInverse(8, currentAnswers[8]);
-    reCalclulatedLoserScore +=
-        (currentAnswers[12] == 3 ? 5.0 : (norm[12] <= 2.0 ? 3.0 : 1.0));
-    reCalclulatedLoserScore += _normalizeInverse(9, currentAnswers[9]) * 1.5;
-    reCalclulatedLoserScore +=
-        (currentAnswers[14] == 3 ? 5.0 : (norm[14] <= 2.0 ? 3.0 : 1.0));
-    if (currentAnswers[16] == 1)
-      reCalclulatedLoserScore += 5.0; // Q17ゲーム
-    else if (currentAnswers[16] == 3)
-      reCalclulatedLoserScore += 4.5; // Q17寝る
-    if (reCalclulatedLoserScore >= 45.0 ||
-        (isDefinitelyLoserByDaipitsu && reCalclulatedLoserScore >= 40.0) ||
-        ((6.0 - normalizedSkippedRateScore) >= 4.5 && (6.0 - norm[3]) >= 4.0)) {
-      return "カス大学生";
-    }
-
-    Map<String, double> scores = {
-      "剣士": knightScore,
-      "魔女": witchScore,
-      "商人": merchantScore,
-      "ゴリラ": gorillaScore,
-      "冒険家": adventurerScore,
-    };
-    String finalCharacter = "剣士";
-    double maxScore = -double.infinity;
-    scores.forEach((character, score) {
-      double effectiveScore = max(0, score);
-      if (effectiveScore > maxScore) {
-        maxScore = effectiveScore;
-        finalCharacter = character;
-      }
-    });
-    return finalCharacter;
-  }
+  // ★★★ 診断ロジック (_normalizeAnswer, _normalizeInverse, _diagnoseCharacter) はここからは削除 ★★★
 
   @override
   Widget build(BuildContext context) {
-    final String characterName = _diagnoseCharacter(answers);
+    // CharacterQuestionPage から渡された diagnosedCharacterName を使用
+    final String characterName = diagnosedCharacterName;
     final Map<String, dynamic> displayCharacterData =
         _characterFullData[characterName] ?? _characterFullData["剣士"]!;
 
-    // buildメソッドのUI部分は変更なしなので省略
     return Scaffold(
-      backgroundColor: Colors.brown[50],
+      backgroundColor: Colors.brown[50], // Stackの下になるので、実質見えない
       appBar: AppBar(
         title: const Text('診断結果'),
         backgroundColor: Colors.brown,
         automaticallyImplyLeading: false,
+        titleTextStyle: TextStyle(
+          // AppBarのタイトルも白に
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Stack(
         children: <Widget>[
           Positioned.fill(
             child: Image.asset(
-              'assets/question_background_image.png', // ★あなたの背景画像パス
+              'assets/question_background_image.png', // ★ QuestionPageと共通の背景画像
               fit: BoxFit.cover,
             ),
           ),
@@ -504,6 +235,7 @@ class CharacterDecidePage extends StatelessWidget {
                                 context,
                                 '/square',
                                 arguments: {
+                                  // ★ characterName と image を渡す
                                   'characterName': characterName,
                                   'characterImage':
                                       displayCharacterData["image"],
