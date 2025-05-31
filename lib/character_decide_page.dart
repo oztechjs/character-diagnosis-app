@@ -1,26 +1,22 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart'; // ★ Firebase関連のimportを削除
 // import 'park_page.dart'; // Navigator.pushNamed を使うので直接は不要なことも
 
-// CharacterDecidePage を StatefulWidget に変更
-class CharacterDecidePage extends StatefulWidget {
+// CharacterDecidePage を StatelessWidget に戻す (または診断ロジックをbuild内で処理)
+class CharacterDecidePage extends StatelessWidget {
+  // ★ StatefulWidget から StatelessWidget に変更
   final List<int> answers;
 
-  const CharacterDecidePage({super.key, required this.answers});
+  // ★ diagnosedCharacterName を受け取るように変更する場合 (CharacterQuestionPageから渡すなら)
+  // final String? diagnosedCharacterName;
+  // const CharacterDecidePage({super.key, required this.answers, this.diagnosedCharacterName});
 
-  @override
-  State<CharacterDecidePage> createState() => _CharacterDecidePageState();
-}
+  const CharacterDecidePage({super.key, required this.answers}); // 現状はanswersのみ
 
-class _CharacterDecidePageState extends State<CharacterDecidePage> {
-  late String _characterName; // 診断されたキャラクター名を保持
-  late Map<String, dynamic> _displayCharacterData; // 表示するキャラクターデータを保持
-
-  // キャラクターの全データ定義 (buildメソッドから移動)
-  // initStateで使うため、Stateクラスのメンバにするか、外に定義します。
-  // ここではStateクラスのメンバとして定義する例。
-  final Map<String, dynamic> _characterFullData = {
+  // キャラクターの全データ定義 (buildメソッド内で使うので、ここで定義するかトップレベルに)
+  final Map<String, dynamic> _characterFullData = const {
+    // ★ constを追加
     "剣士": {
       "image": 'assets/character_swordman.png',
       "name": "剣士",
@@ -86,45 +82,11 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
     },
   };
 
-  @override
-  void initState() {
-    super.initState();
-    // ページが初期化される時に診断を実行し、結果を保存
-    _characterName = _diagnoseCharacter(widget.answers);
-    _displayCharacterData =
-        _characterFullData[_characterName] ?? _characterFullData["剣士"]!;
-
-    // エラーでない場合のみFirestoreに保存
-    if (_characterName != "エラー：回答数が不足しています") {
-      _saveDiagnosisToFirestore(widget.answers, _characterName);
-    }
-  }
-
-  // Firestoreへの保存処理 (CharacterDecidePageクラスのメソッドとして定義)
-  Future<void> _saveDiagnosisToFirestore(
-    List<int> userAnswers,
-    String diagnosedCharacter,
-  ) async {
-    print('--- Firestoreへの保存処理を開始します (initStateから) ---');
-    print('回答: $userAnswers');
-    print('診断キャラ: $diagnosedCharacter');
-    try {
-      await FirebaseFirestore.instance.collection('diagnostics').add({
-        'answers': userAnswers,
-        'character': diagnosedCharacter,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      print('診断結果をFirestoreに保存しました。');
-    } catch (e) {
-      print('Firestoreへの保存に失敗しました: $e');
-    }
-  }
+  // ★ Firebaseへの保存処理 (_saveDiagnosisToFirestore) はここからは削除します ★
 
   // _normalizeAnswer, _normalizeInverse, _diagnoseCharacter メソッドは
-  // StatefulWidget の State クラス (_CharacterDecidePageState) のメソッドとしてここに移動します。
-  // (内容は前回提示したものと同じなので、ここでは省略します。widget.answers でアクセスするように注意)
-
-  // ↓↓↓ _normalizeAnswer, _normalizeInverse, _diagnoseCharacter のコードをここに配置 ↓↓↓
+  // StatelessWidgetのメソッドとしてここに配置します（またはトップレベル関数でも可）。
+  // widget.answers の代わりに、渡された answers を直接使います。
   double _normalizeAnswer(int questionIndex, int rawAnswer) {
     double normalizedScore = 3.0;
     switch (questionIndex) {
@@ -229,14 +191,14 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
     return (5.0 - normalizedScore) + 1.0;
   }
 
-  String _diagnoseCharacter(List<int> rawAnswersFromWidget) {
-    // 引数名を変更 widget.answers と区別するため
-    if (rawAnswersFromWidget.length != 15) {
+  String _diagnoseCharacter(List<int> currentAnswers) {
+    // StatelessWidget内では widget.answers の代わりに引数で受け取る
+    if (currentAnswers.length != 15) {
       return "エラー：回答数が不足しています";
     }
     List<double> norm = List.generate(
-      rawAnswersFromWidget.length,
-      (i) => _normalizeAnswer(i, rawAnswersFromWidget[i]),
+      currentAnswers.length,
+      (i) => _normalizeAnswer(i, currentAnswers[i]),
     );
 
     double knightScore = 0;
@@ -245,49 +207,49 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
     knightScore += norm[3] * 1.0;
     knightScore += norm[5] * 1.2;
     knightScore += norm[6] * 1.0;
-    if (rawAnswersFromWidget[10] == 0)
+    if (currentAnswers[10] == 0)
       knightScore += norm[10] * 1.5;
-    else if (rawAnswersFromWidget[10] == 1)
+    else if (currentAnswers[10] == 1)
       knightScore += norm[10] * 1.2;
     knightScore += norm[7] * 1.2;
-    knightScore += _normalizeInverse(4, rawAnswersFromWidget[4]) * 1.0;
-    if (rawAnswersFromWidget[12] == 1) knightScore += norm[12] * 1.0;
+    knightScore += _normalizeInverse(4, currentAnswers[4]) * 1.0;
+    if (currentAnswers[12] == 1) knightScore += norm[12] * 1.0;
 
     double witchScore = 0;
     witchScore += norm[5] * 2.5;
-    if (rawAnswersFromWidget[11] == 0) witchScore += norm[11] * 2.0;
-    if (rawAnswersFromWidget[13] == 3) witchScore += norm[13] * 2.0;
-    witchScore += _normalizeInverse(1, rawAnswersFromWidget[1]) * 1.0;
+    if (currentAnswers[11] == 0) witchScore += norm[11] * 2.0;
+    if (currentAnswers[13] == 3) witchScore += norm[13] * 2.0;
+    witchScore += _normalizeInverse(1, currentAnswers[1]) * 1.0;
     witchScore += norm[7] * 1.0;
-    witchScore += _normalizeInverse(3, rawAnswersFromWidget[3]) * 0.8;
-    witchScore += _normalizeInverse(2, rawAnswersFromWidget[2]) * 0.5;
+    witchScore += _normalizeInverse(3, currentAnswers[3]) * 0.8;
+    witchScore += _normalizeInverse(2, currentAnswers[2]) * 0.5;
 
     double merchantScore = 0;
     merchantScore += norm[2] * 2.0;
     merchantScore += norm[4] * 1.5;
-    if (rawAnswersFromWidget[11] == 2) merchantScore += norm[11] * 1.5;
+    if (currentAnswers[11] == 2) merchantScore += norm[11] * 1.5;
     merchantScore += norm[8] * 1.2;
-    if (rawAnswersFromWidget[12] == 2) merchantScore += norm[12] * 1.2;
-    if (rawAnswersFromWidget[10] == 1) merchantScore += norm[10] * 1.0;
+    if (currentAnswers[12] == 2) merchantScore += norm[12] * 1.2;
+    if (currentAnswers[10] == 1) merchantScore += norm[10] * 1.0;
 
     double gorillaScore = 0;
     gorillaScore += norm[1] * 2.0;
     gorillaScore += norm[6] * 1.8;
     gorillaScore += norm[7] * 1.5;
     gorillaScore += norm[3] * 1.2;
-    if (rawAnswersFromWidget[13] == 0) gorillaScore += norm[13] * 1.5;
+    if (currentAnswers[13] == 0) gorillaScore += norm[13] * 1.5;
     gorillaScore += norm[0] * 1.0;
-    if (rawAnswersFromWidget[12] == 0) gorillaScore += norm[12] * 1.5;
+    if (currentAnswers[12] == 0) gorillaScore += norm[12] * 1.5;
     gorillaScore += norm[5] * 1.0;
 
     double adventurerScore = 0;
-    if (rawAnswersFromWidget[9] == 2) adventurerScore += norm[9] * 2.5;
-    if (rawAnswersFromWidget[10] == 2) adventurerScore += norm[10] * 2.0;
-    if (rawAnswersFromWidget[11] == 1) adventurerScore += norm[11] * 1.5;
+    if (currentAnswers[9] == 2) adventurerScore += norm[9] * 2.5;
+    if (currentAnswers[10] == 2) adventurerScore += norm[10] * 2.0;
+    if (currentAnswers[11] == 1) adventurerScore += norm[11] * 1.5;
     adventurerScore += norm[4] * 1.0;
-    if (rawAnswersFromWidget[10] == 0)
-      adventurerScore += _normalizeInverse(10, rawAnswersFromWidget[10]) * 0.8;
-    if (rawAnswersFromWidget[13] == 4) adventurerScore += norm[13] * 1.5;
+    if (currentAnswers[10] == 0)
+      adventurerScore += _normalizeInverse(10, currentAnswers[10]) * 0.8;
+    if (currentAnswers[13] == 4) adventurerScore += norm[13] * 1.5;
 
     double godScore = 0;
     godScore += norm[0];
@@ -296,27 +258,27 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
     godScore += norm[5];
     godScore += norm[6];
     godScore += norm[7];
-    if (rawAnswersFromWidget[10] == 0) godScore += norm[10];
-    if (rawAnswersFromWidget[12] == 1) godScore += norm[12];
+    if (currentAnswers[10] == 0) godScore += norm[10];
+    if (currentAnswers[12] == 1) godScore += norm[12];
     if (godScore >= 30.0 && norm[14] >= 4.0) {
       return "神";
     }
 
     bool isDefinitelyLoserByDaipitsu = norm[14] <= 1.0;
     double reCalclulatedLoserScore =
-        _normalizeInverse(0, rawAnswersFromWidget[0]) +
-        _normalizeInverse(1, rawAnswersFromWidget[1]) +
+        _normalizeInverse(0, currentAnswers[0]) +
+        _normalizeInverse(1, currentAnswers[1]) +
         norm[4] +
-        _normalizeInverse(5, rawAnswersFromWidget[5]) +
-        _normalizeInverse(6, rawAnswersFromWidget[6]) +
-        (rawAnswersFromWidget[10] == 3
+        _normalizeInverse(5, currentAnswers[5]) +
+        _normalizeInverse(6, currentAnswers[6]) +
+        (currentAnswers[10] == 3
             ? 5.0
-            : (_normalizeInverse(10, rawAnswersFromWidget[10]) * 0.5)) +
-        _normalizeInverse(7, rawAnswersFromWidget[7]) +
-        _normalizeInverse(14, rawAnswersFromWidget[14]) * 1.5 +
-        (rawAnswersFromWidget[12] == 3
+            : (_normalizeInverse(10, currentAnswers[10]) * 0.5)) +
+        _normalizeInverse(7, currentAnswers[7]) +
+        _normalizeInverse(14, currentAnswers[14]) * 1.5 +
+        (currentAnswers[12] == 3
             ? 5.0
-            : (_normalizeInverse(12, rawAnswersFromWidget[12]) * 0.5));
+            : (_normalizeInverse(12, currentAnswers[12]) * 0.5));
 
     if (reCalclulatedLoserScore >= 32.0 ||
         (isDefinitelyLoserByDaipitsu && reCalclulatedLoserScore >= 28.0)) {
@@ -341,14 +303,18 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
     });
     return finalCharacter;
   }
-  // ↑↑↑ _normalizeAnswer, _normalizeInverse, _diagnoseCharacter のコードはここまで ↑↑↑
 
   @override
   Widget build(BuildContext context) {
-    // _characterName と _displayCharacterData は initState で初期化済みなので、
-    // build メソッドではそれらを使用する。
-    // String characterName = _diagnoseCharacter(widget.answers); // ここでの再診断は不要
-    // final displayCharacterData = _characterFullData[_characterName] ?? _characterFullData["剣士"]!; // initStateで設定済み
+    // buildメソッド内で診断を実行
+    // もし CharacterQuestionPage から diagnosedCharacterName を受け取る場合は、それを使用
+    // final String characterName = diagnosedCharacterName ?? _diagnoseCharacter(answers);
+    final String characterName = _diagnoseCharacter(
+      answers,
+    ); // answers は StatelessWidget のフィールド
+
+    final Map<String, dynamic> displayCharacterData =
+        _characterFullData[characterName] ?? _characterFullData["剣士"]!;
 
     return Scaffold(
       backgroundColor: Colors.brown[50],
@@ -361,7 +327,7 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
         children: <Widget>[
           Positioned.fill(
             child: Image.asset(
-              'assets/question_background_image.png', // ★あなたのDecidePage用背景画像パス
+              'assets/decide_background_image.png', // ★あなたのDecidePage用背景画像パス
               fit: BoxFit.cover,
             ),
           ),
@@ -375,8 +341,7 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      _characterName ==
-                              "エラー：回答数が不足しています" // Stateの _characterName を使用
+                      characterName == "エラー：回答数が不足しています"
                           ? "おっと！"
                           : "🎓 あなたの履修タイプは…！",
                       style: TextStyle(
@@ -394,19 +359,17 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-                    if (_displayCharacterData["image"] !=
-                        null) // Stateの _displayCharacterData を使用
+                    if (displayCharacterData["image"] != null)
                       CircleAvatar(
                         radius: 100,
                         backgroundImage: AssetImage(
-                          _displayCharacterData["image"],
+                          displayCharacterData["image"],
                         ),
                         backgroundColor: Colors.brown[100],
                       ),
                     const SizedBox(height: 20),
                     Text(
-                      _displayCharacterData["name"] ??
-                          _characterName, // Stateの変数を使用
+                      displayCharacterData["name"] ?? characterName,
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -437,14 +400,13 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
                             _buildCharacteristicRow(
                               Icons.psychology_alt,
                               "性格",
-                              _displayCharacterData["personality"] ?? "---",
+                              displayCharacterData["personality"] ?? "---",
                             ),
                             Divider(color: Colors.brown[200]),
                             _buildCharacteristicRow(
                               Icons.star_outline,
                               "スキル",
-                              (_displayCharacterData["skills"]
-                                          as List<dynamic>?)
+                              (displayCharacterData["skills"] as List<dynamic>?)
                                       ?.join(", ") ??
                                   "---",
                             ),
@@ -452,7 +414,7 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
                             _buildCharacteristicRow(
                               Icons.backpack_outlined,
                               "持ち物",
-                              (_displayCharacterData["items"] as List<dynamic>?)
+                              (displayCharacterData["items"] as List<dynamic>?)
                                       ?.join(", ") ??
                                   "---",
                             ),
@@ -488,16 +450,17 @@ class _CharacterDecidePageState extends State<CharacterDecidePage> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // Firestoreへの保存はinitStateで行われたので、ここではナビゲーションのみ
+                            // ★ Firebaseへの保存処理はここからは削除されています ★
+                            // ナビゲーションのみ
                             if (context.mounted) {
                               Navigator.pushNamed(
                                 context,
                                 '/square',
                                 arguments: {
                                   'characterName':
-                                      _characterName, // Stateの _characterName を使用
+                                      characterName, // buildメソッドで診断した結果を使用
                                   'characterImage':
-                                      _displayCharacterData["image"], // Stateの _displayCharacterData を使用
+                                      displayCharacterData["image"],
                                 },
                               );
                             }
