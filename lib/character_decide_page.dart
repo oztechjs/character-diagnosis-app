@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 // import 'dart:math'; // 診断ロジックがないので不要
-// import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase関連は不要
 
 class CharacterDecidePage extends StatelessWidget {
-  final List<int> answers; // 今後の拡張やデバッグのために一応残すことも可能
+  final List<int> answers;
   final String diagnosedCharacterName;
 
   const CharacterDecidePage({
@@ -81,19 +80,17 @@ class CharacterDecidePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String characterName = diagnosedCharacterName; //渡されたキャラ名を使用
+    final String characterName = diagnosedCharacterName;
     final Map<String, dynamic> displayCharacterData =
         _characterFullData[characterName] ?? _characterFullData["剣士"]!;
 
     return Scaffold(
-      // ... (UI部分は前回提示した CharacterDecidePage の build メソッドと同じなので省略) ...
-      // ... (背景画像パスも 'assets/question_background_image.png' に統一) ...
-      backgroundColor: Colors.brown[50],
       appBar: AppBar(
         title: const Text('診断結果'),
         backgroundColor: Colors.brown,
         automaticallyImplyLeading: false,
         titleTextStyle: TextStyle(
+          fontFamily: 'NotoSansJP',
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -103,7 +100,7 @@ class CharacterDecidePage extends StatelessWidget {
         children: <Widget>[
           Positioned.fill(
             child: Image.asset(
-              'assets/question_background_image.png', // ★ QuestionPageと共通の背景画像
+              'assets/question_background_image.png', // QuestionPageと共通の背景画像
               fit: BoxFit.cover,
             ),
           ),
@@ -121,6 +118,7 @@ class CharacterDecidePage extends StatelessWidget {
                           ? "おっと！"
                           : "🎓 あなたの履修タイプは…！",
                       style: TextStyle(
+                        fontFamily: 'NotoSansJP',
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -147,6 +145,7 @@ class CharacterDecidePage extends StatelessWidget {
                     Text(
                       displayCharacterData["name"] ?? characterName,
                       style: TextStyle(
+                        fontFamily: 'NotoSansJP',
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -287,6 +286,7 @@ class CharacterDecidePage extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
+                    fontFamily: 'NotoSansJP', // カード内のテキストにもフォント指定する場合
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.brown[800],
@@ -295,7 +295,11 @@ class CharacterDecidePage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   text,
-                  style: TextStyle(fontSize: 15, color: Colors.brown[900]),
+                  style: TextStyle(
+                    fontFamily: 'NotoSansJP',
+                    fontSize: 15,
+                    color: Colors.brown[900],
+                  ),
                 ),
               ],
             ),
