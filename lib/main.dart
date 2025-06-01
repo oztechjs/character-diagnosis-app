@@ -17,9 +17,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'キャラクター診断 ver3.0',
+      title: 'キャラクター診断 ver5.0',
       theme: ThemeData(
         primarySwatch: Colors.brown,
+        fontFamily: 'NotoSansJP',
         // スライダーのポップアップラベルの文字色などを設定
         sliderTheme: SliderThemeData(
           valueIndicatorTextStyle: TextStyle(color: Colors.white),

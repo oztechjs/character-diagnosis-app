@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'dart:math'; // _normalizeAnswer などで使う場合は残す (今回は診断ロジックごと削除)
-
-// import 'package:cloud_firestore/cloud_firestore.dart'; // ★ Firebase関連は不要
+// import 'dart:math'; // 診断ロジックがないので不要
+// import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase関連は不要
 
 class CharacterDecidePage extends StatelessWidget {
-  final List<int> answers; // 一応受け取るが、主には diagnosedCharacterName を使う
-  final String
-  diagnosedCharacterName; // ★ CharacterQuestionPage から渡される診断済みのキャラクター名
+  final List<int> answers; // 今後の拡張やデバッグのために一応残すことも可能
+  final String diagnosedCharacterName;
 
   const CharacterDecidePage({
     super.key,
     required this.answers,
-    required this.diagnosedCharacterName, // ★ コンストラクタで受け取る
+    required this.diagnosedCharacterName,
   });
 
   // キャラクターの全データ定義
@@ -81,23 +79,21 @@ class CharacterDecidePage extends StatelessWidget {
     },
   };
 
-  // ★★★ 診断ロジック (_normalizeAnswer, _normalizeInverse, _diagnoseCharacter) はここからは削除 ★★★
-
   @override
   Widget build(BuildContext context) {
-    // CharacterQuestionPage から渡された diagnosedCharacterName を使用
-    final String characterName = diagnosedCharacterName;
+    final String characterName = diagnosedCharacterName; //渡されたキャラ名を使用
     final Map<String, dynamic> displayCharacterData =
         _characterFullData[characterName] ?? _characterFullData["剣士"]!;
 
     return Scaffold(
-      backgroundColor: Colors.brown[50], // Stackの下になるので、実質見えない
+      // ... (UI部分は前回提示した CharacterDecidePage の build メソッドと同じなので省略) ...
+      // ... (背景画像パスも 'assets/question_background_image.png' に統一) ...
+      backgroundColor: Colors.brown[50],
       appBar: AppBar(
         title: const Text('診断結果'),
         backgroundColor: Colors.brown,
         automaticallyImplyLeading: false,
         titleTextStyle: TextStyle(
-          // AppBarのタイトルも白に
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -235,7 +231,6 @@ class CharacterDecidePage extends StatelessWidget {
                                 context,
                                 '/square',
                                 arguments: {
-                                  // ★ characterName と image を渡す
                                   'characterName': characterName,
                                   'characterImage':
                                       displayCharacterData["image"],
